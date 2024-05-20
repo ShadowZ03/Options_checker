@@ -1,19 +1,20 @@
-import pandas
+import pandas as pd
 import yfinance as yf
 
-# add user input for selecting multiple tickers
-# add user input for deciding call/put display
-# add user input for days out
+# Add user input for selecting multiple tickers
+# Add user input for deciding call/put display
+# Add user input for days out
 
 ticker = yf.Ticker("ARM")
 current_price = ticker.info['currentPrice']
 
-def option_brief(option: pandas.DataFrame):
+
+def option_brief(option):
     filtered_indices = option.index[option['strike'] == int(current_price)].tolist()
 
     surrounding_indices = []
     for idx in filtered_indices:
-        for i in range(-4, 5):  # Range from -3 to 3
+        for i in range(-3, 4):  # Range from -3 to 3
             if 0 <= idx + i < len(option):
                 surrounding_indices.append(idx + i)
 
@@ -21,35 +22,44 @@ def option_brief(option: pandas.DataFrame):
     filtered_df = option.iloc[surrounding_indices]
     return filtered_df
 
-for date in range(3):
 
-    select_date = ticker.options[date]
-    counter = 0
-    counter +=1
-
-    call = ticker.option_chain(select_date)[0]
-    put = ticker.option_chain(select_date)[1]
+def option_seeker(days: int, option: str):
+    master_df = None
+    op = None
 
     option_filter = ['strike', 'bid', 'lastPrice', 'ask', 'contractSymbol']
-    # column names
-    # print(put.columns)
 
-    filter_put = put[option_filter]
-    filter_call = call[option_filter]
+    for date in range(days):
+        select_date = ticker.options[date]
+        counter = date + 1  # Start counter from 1
 
-    x = option_brief(filter_call).copy()
+        if option == "call":
+            op = ticker.option_chain(select_date).calls
+        if option == "put":
+            op = ticker.option_chain(select_date).puts
 
-    value_list = []
-    value_by_days = []
+        filter_call = op[option_filter]
 
-    for i in x['bid']:
-        value = (i*100)/(counter*5)
-        value_by_days.append(round(value))
+        x = option_brief(filter_call).copy()
 
-        value2 = (i * 100)
-        value_list.append(round(value2))
+        value_list = []
+        value_per_days = []
 
-    x.loc[:, 'Value'] = value_list
-    x.loc[:, 'ValueByDays'] = value_by_days
+        for i in x['bid']:
+            value = (i * 100) / (counter * 5)
+            value_per_days.append(round(value))
 
-    print(x)
+            value2 = (i * 100)
+            value_list.append(round(value2))
+
+        x.loc[:, 'Value'] = value_list
+        x.loc[:, 'ValuePerDays'] = value_per_days
+
+        # Concatenate the filtered and computed DataFrame to the master DataFrame
+        if not x.empty:
+            master_df = pd.concat([master_df, x], ignore_index=True)
+
+    return master_df
+
+
+print(option_seeker(3, "call"))

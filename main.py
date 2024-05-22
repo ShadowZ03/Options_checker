@@ -40,14 +40,14 @@ def option_seeker(weeks: int, option: str):
 
     option_filter = ['strike', 'bid', 'lastPrice', 'ask', 'contractSymbol']
 
-    for date in range(weeks):
-        select_date = ticker.options[date]
-        counter = date + 1  # Start counter from 1
+    for day in range(weeks):
+        select_day = ticker.options[day]
+        counter = day + 1
 
         if option == "call":
-            op = ticker.option_chain(select_date).calls
+            op = ticker.option_chain(select_day).calls
         if option == "put":
-            op = ticker.option_chain(select_date).puts
+            op = ticker.option_chain(select_day).puts
 
         filter_call = op[option_filter]
 
@@ -56,7 +56,7 @@ def option_seeker(weeks: int, option: str):
         value_list = []
         value_per_weeks = []
 
-        for i in x['bid']:
+        for i in x['lastPrice']:
             value = (i * 100) / (counter * 5)
             value_per_weeks.append(round(value))
 
@@ -72,4 +72,4 @@ def option_seeker(weeks: int, option: str):
 
     return master_df
 
-print(option_seeker(3, "call"))
+print(option_seeker(3, "put"))

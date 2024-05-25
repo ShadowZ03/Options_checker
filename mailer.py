@@ -23,7 +23,8 @@ def send_email(subject, body, to_email):
     try:
         # Establish SSL connection
         server = smtplib.SMTP_SSL(smtp_server, smtp_port_ssl)
-        server.set_debuglevel(1)  # Enable debugging output
+        if const.debug:
+            server.set_debuglevel(1)  # Enable debugging output
         server.login(gmail_email, gmail_password)
 
         # Send email

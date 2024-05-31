@@ -1,16 +1,23 @@
 import pandas as pd
 import yfinance as yf
 import mailer
-# import scheduler
 import time
 from datetime import datetime, timedelta
 import const
+import holidays
+
+us_holidays = holidays.US()
+
+def is_business_day():
+    today = datetime.now().date()
+    return today.weekday() < 5 and today not in holidays.country_holidays('US')
+
 
 def option_brief(option, cp: int):
     """
     Grabs relevant information for options
     :param option: "call" or "put"
-    :return: filtered dataframe copy from main dataframe
+    :return: filtered dataframe copy from main dataframe v
     """
     filtered_indices = option.index[option['strike'] == cp].tolist()
 
@@ -33,8 +40,8 @@ def option_seeker(tick: str, weeks: int, option: str):
     :return: appended dataframe of option, by weeks, in range of +/- 3 of current price
     """
     ticker = yf.Ticker(tick)
+    print(ticker, tick)
     current_price = int(ticker.info['currentPrice'])
-
 
     master_df = None
     op = None
@@ -87,28 +94,34 @@ def wait_until_start(start_time):
     time.sleep(wait_seconds)
 
 
-def scheduler(start_time, loop_hours:int, delay_hours:int):
-    wait_until_start(start_time)
+def scheduler(stocks:list):
 
-    delay_set = delay_hours*3600 # set for multiply for hours
-    # delay_set = delay_hours*20
-
-    for _ in range(loop_hours):  # Loop 10 times for 10 hours
-        stocks = ["ARM", "F"]
-
-        for stock in stocks:
+    for stock in stocks:
             print(f"Looking at: {stock}")
             print("*" * 10)
 
             print(f"Generating Email for: {stock}")
-            subject = f"Test Email - {stock}"
-            body = "This is a test email sent from Python.\n" + option_seeker(stock, 3, "put").to_string()
+            subject = f"OPTIONS BRIEF - {stock}"
+            body = f"""This is a test email sent from Python.\n 
+                        ***** Call *****
+                    {option_seeker(stock, 3, "call").to_string()}
+                    \n
+                        ***** Put *****
+                    { option_seeker(stock, 3, "put").to_string()}"""
             to_email = const.gmail_email  # Replace with recipient's email
 
             mailer.send_email(subject, body, to_email)
-        time.sleep(delay_set)  # Sleep for 1 hour (3600 seconds)
 
 if __name__ == "__main__":
-    now = datetime.now()
-    scheduler((now + timedelta(minutes=1)).time(), 8, 1) # runs in one minute, 8x a day with one hour delay.
-
+    if is_business_day:
+        i = 0
+        while i <= 4:
+            now = datetime.now()
+            scheduler(["ARM", "F"])
+            time.sleep(60 * 60)  # Run the job every hour
+    else:
+        print("Today is a holiday or weekend, skipping job.")
+        subject = f"Not Working Day"
+        body = "This is a test email sent from Python."
+        to_email = const.gmail_email  # Replace with recipient's email
+        mailer.send_email(subject, body, to_email)

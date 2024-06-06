@@ -6,7 +6,8 @@ from datetime import datetime, timedelta
 import const
 import holidays
 
-us_holidays = holidays.US()
+debug = const.debug
+
 
 def is_business_day():
     today = datetime.now().date()
@@ -40,7 +41,6 @@ def option_seeker(tick: str, weeks: int, option: str):
     :return: appended dataframe of option, by weeks, in range of +/- 3 of current price
     """
     ticker = yf.Ticker(tick)
-    print(ticker, tick)
     current_price = int(ticker.info['currentPrice'])
 
     master_df = None
@@ -77,8 +77,31 @@ def option_seeker(tick: str, weeks: int, option: str):
         # Concatenate the filtered and computed DataFrame to the master DataFrame
         if not filtered_options_df.empty:
             master_df = pd.concat([master_df, filtered_options_df], ignore_index=True)
+        if debug:
+            print(master_df)
 
     return master_df
+
+
+def news_seeker(tick) -> str:
+    """
+    Function to grab news for a designated ticker
+    :param tick: stock ticker
+    :return: string of Title and link for that article
+    """
+
+    news_yf = yf.Ticker(tick).news
+    links = ""
+
+    for article in news_yf:
+        if tick in article["title"].upper():
+            links = f"{links}" + f"{article['title']}" + "\n"
+            links = f"{links}" + f"{article['link']}" + "\n" + "\n"
+
+    if debug:
+        print(links)
+
+    return links
 
 
 def wait_until_start(start_time):
@@ -94,29 +117,33 @@ def wait_until_start(start_time):
     time.sleep(wait_seconds)
 
 
-def scheduler(stocks:list):
-
+def scheduler(stocks: list):
     for stock in stocks:
-            print(f"Looking at: {stock}")
-            print("*" * 10)
+        print(f"Looking at: {stock}")
+        print("*" * 10)
+        print(f"Generating Email for: {stock}")
 
-            print(f"Generating Email for: {stock}")
-            subject = f"OPTIONS BRIEF - {stock}"
-            body = f"""This is a test email sent from Python.\n 
+        subject = f"OPTIONS BRIEF - {stock}"
+        body = f"""This is a test email sent from Python.\n 
                         ***** Call *****
                     {option_seeker(stock, 3, "call").to_string()}
                     \n
                         ***** Put *****
-                    { option_seeker(stock, 3, "put").to_string()}"""
-            to_email = const.gmail_email  # Replace with recipient's email
+                    {option_seeker(stock, 3, "put").to_string()}
+                    \n
+                    
+                       **** NEWS ****
+                    {news_seeker(stock)}
+                    """
+        to_email = const.gmail_email  # Replace with recipient's email
 
-            mailer.send_email(subject, body, to_email)
+        mailer.send_email(subject, body, to_email)
 
-if __name__ == "__main__":
-    if is_business_day:
+
+def main():
+    if is_business_day():
         i = 0
-        while i <= 4:
-            now = datetime.now()
+        while i <= 5:
             scheduler(["ARM", "F"])
             time.sleep(60 * 60)  # Run the job every hour
     else:
@@ -125,3 +152,7 @@ if __name__ == "__main__":
         body = "This is a test email sent from Python."
         to_email = const.gmail_email  # Replace with recipient's email
         mailer.send_email(subject, body, to_email)
+
+
+if __name__ == "__main__":
+    main()

@@ -1,3 +1,4 @@
+import pandas
 import pandas as pd
 import yfinance as yf
 import mailer
@@ -47,7 +48,7 @@ class seeker:
 
         current_price = int(self.yhTicker.info['currentPrice'])
 
-        master_df = None
+        master_df = pandas.DataFrame()
         op = None
 
         option_filter = ['strike', 'bid', 'lastPrice', 'ask', 'contractSymbol']
@@ -119,7 +120,7 @@ class seeker:
         print(f"Waiting for {wait_seconds} seconds until start time...")
         time.sleep(wait_seconds)
 
-    def scheduler(self):
+    def sender(self):
         # for stock in stocks:
         print(f"Looking at: {self.yhTicker.info['symbol']}")
         print("*" * 10)
@@ -127,15 +128,16 @@ class seeker:
         print(f"Generating Email for: {self.yhTicker.info['symbol']}")
         subject = f"OPTIONS BRIEF - {self.yhTicker.info['symbol']}"
         body = f"""This is a test email sent from Python.\n 
-                            ***** Call *****
+                    ***** Call *****
                         {self.option_seeker(3, "call").to_string()}
                         \n
-                            ***** Put *****
+                    ***** Put *****
+                    
                         {self.option_seeker(3, "put").to_string()}
                         \n
 
-                           **** NEWS ****
-                        {self.news_seeker(self.yhTicker)}
+                    **** NEWS ****
+                    {self.news_seeker(self.yhTicker)}
                         """
         to_email = const.gmail_email  # Replace with recipient's email
 
@@ -151,7 +153,7 @@ if __name__ == "__main__":
 
             for l in list:
                 x = seeker(l)
-                x.scheduler()
+                x.sender()
             time.sleep(60 * 60)  # Run the job every hour
         else:
             print("Today is a holiday or weekend, skipping job.")
@@ -159,3 +161,4 @@ if __name__ == "__main__":
             body = "This is a test email sent from Python."
             to_email = const.gmail_email  # Replace with recipient's email
             mailer.send_email(subject, body, to_email)
+
